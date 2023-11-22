@@ -1,20 +1,22 @@
 (() => {
-  let sText = null;
+  let selectedText = "";
+  let popup = null;
 
-  document.addEventListener("mouseup", function () {
-    console.log(sText, "sText");
-    var selectedText = getSelectedText();
-    if (selectedText && selectedText != sText) {
-      sText = selectedText;
-      chrome.runtime.sendMessage({ text: selectedText });
+  const handleMouseUp = () => {
+    var newText = getSelectedText();
+    if (newText && newText !== selectedText) {
+      selectedText = newText;
+      sendMessageToBackground({ text: selectedText });
     }
-  });
-
-  document.addEventListener("click", function (event) {
+  };
+  const handleClick = (event) => {
     if (popup && !popup.contains(event.target)) {
       closePopup();
+      selectedText = null;
     }
-  });
+  };
+  document.addEventListener("mouseup", handleMouseUp);
+  document.addEventListener("click", handleClick);
 
   function getSelectedText() {
     var text = "";
@@ -26,12 +28,15 @@
     return text;
   }
 
+  function sendMessageToBackground(message) {
+    chrome.runtime.sendMessage(message);
+  }
+
   function isValidWord(text) {
     var regex = /^\s*\w+\s*$/;
     return regex.test(text);
   }
 
-  let popup;
   chrome.runtime.onMessage.addListener(
     async (request, sender, sendResponse) => {
       const { action, selection } = request;
@@ -39,186 +44,313 @@
         if (!popup) {
           popup = document.createElement("div");
           document.body.appendChild(popup);
+          stylingPopup();
+          addTail();
         }
 
         if (isValidWord(selection)) {
-          const response = await getDefination(selection).then((data) => {
-            return data;
-          });
-
-          const word = response[0]?.word;
-          if (!word) {
-            const message = response?.message;
-            if (message) {
-              errorPopup(message);
-            } else {
-              errorPopup("Sorry!");
-            }
-          } else {
-            let audio;
-            for (let i = 0; i < response[0].phonetics.length; i++) {
-              if (response[0].phonetics[i].audio) {
-                audio = response[0].phonetics[i].audio;
-                break;
-              }
-            }
-
-            let definition;
-
-            for (
-              let i = 0;
-              i < response[0].meanings[0].definitions.length;
-              i++
-            ) {
-              if (response[0].meanings[0].definitions[i].definition) {
-                definition = response[0].meanings[0].definitions[i].definition;
-                break;
-              }
-            }
-            if (!definition) {
-              definition = "defination not found";
-            }
-            let phonetic = response[0].phonetic;
-            if (!phonetic) {
-              phonetic = "Phonetic not found!";
-            }
-
-            popup.style.zIndex = "1000";
-            popup.innerHTML = `<button id="close-popup"><svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="20" height="20" viewBox="0,0,256,256">
-            <g transform=""><g fill="#ffffff" fill-rule="nonzero" stroke="none" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" stroke-dasharray="" stroke-dashoffset="0" font-family="none" font-weight="none" font-size="none" text-anchor="none" style="mix-blend-mode: normal"><g transform="translate(0,0) scale(8.53333,8.53333)"><path d="M7,4c-0.25587,0 -0.51203,0.09747 -0.70703,0.29297l-2,2c-0.391,0.391 -0.391,1.02406 0,1.41406l7.29297,7.29297l-7.29297,7.29297c-0.391,0.391 -0.391,1.02406 0,1.41406l2,2c0.391,0.391 1.02406,0.391 1.41406,0l7.29297,-7.29297l7.29297,7.29297c0.39,0.391 1.02406,0.391 1.41406,0l2,-2c0.391,-0.391 0.391,-1.02406 0,-1.41406l-7.29297,-7.29297l7.29297,-7.29297c0.391,-0.39 0.391,-1.02406 0,-1.41406l-2,-2c-0.391,-0.391 -1.02406,-0.391 -1.41406,0l-7.29297,7.29297l-7.29297,-7.29297c-0.1955,-0.1955 -0.45116,-0.29297 -0.70703,-0.29297z"></path></g></g></g>
-            </svg></button>
-            <div id="popup-container">
-            <div id ="up-flex">
-            <audio id="myAudio">
-            <source src="${audio}" type="audio/mpeg">
-              Your browser does not support the audio element.
-            </audio>
-            
-            <span id = "phonetic-para">${phonetic}</span>
-            <button id = "play-btn"><img width="24" height="24" src="https://img.icons8.com/material-sharp/24/ffffff/high-volume--v2.png" alt="high-volume--v2"/></button>
-            </div>
-            <h5>${word}: </h5>
-            <p id ="defination-para">${definition}</p>
-            </div>`;
-            console.log("opend!");
-            const popupContainer = document.getElementById("popup-container");
-            const upperFlex = document.getElementById("up-flex");
-            const closeButton = document.getElementById("close-popup");
-            const paraElement = document.getElementById("phonetic-para");
-            const playSource = document.getElementById("myAudio");
-            const playButton = document.getElementById("play-btn");
-
-            stylingPopup(
-              popupContainer,
-              upperFlex,
-              closeButton,
-              paraElement,
-              playButton
-            );
-
-            listenToEvents(closeButton, playButton, playSource);
-          }
+          const selectionCoords = getSelectionCoords();
+          console.log(selectionCoords);
+          positionPopup(selectionCoords);
+          showSearchingMessage();
+          const response = await getDefinition(selection);
+          handleValidWordSelection(response);
+          addTail();
         } else {
           closePopup();
         }
       }
     }
   );
+
+  async function handleValidWordSelection(response) {
+    const word = response ? response[0]?.word : null;
+
+    if (!word) {
+      const errorMessage = response?.message || "Sorry!";
+      console.log(errorMessage);
+      closePopup();
+    } else {
+      const { audio, definition, phonetic } = extractDataFromResponse(response);
+      displayPopup(word, phonetic, audio, definition);
+    }
+  }
+
+  function getSelectionCoords() {
+    const selection = window.getSelection();
+
+    const range = selection.getRangeAt(0);
+
+    const rect = range.getBoundingClientRect();
+    console.log(rect, "rect");
+    console.log(rect.top, "top", rect.left, "left");
+    return {
+      top: rect.top + window.scrollY + rect.height + 10,
+      left: rect.left + window.scrollX,
+      bottom: rect.bottom,
+      rectTop: rect.top,
+      rectBottom: rect.bottom,
+    };
+  }
+
+  function positionPopup(coords) {
+    const { top, left, bottom } = coords;
+    popup.style.position = "absolute";
+    popup.style.top = `${top}px`;
+    popup.style.left = `${left > 100 ? left - 120 : left}px`;
+
+    document.addEventListener("scroll", () => {
+      console.log(top, "top\n", bottom, "bottom\n");
+    });
+  }
+
+  function addTail() {
+    var tail = document.createElement("div");
+    tail.style.content = "";
+    tail.style.border = "10px solid transparent";
+    tail.style.position = "absolute";
+    tail.style.borderBottomColor = "#F0F0F0";
+    tail.style.borderTop = "0";
+    tail.style.top = "-10px";
+    tail.style.left = "50%";
+    tail.style.marginLeft = "-10px";
+    popup.appendChild(tail);
+  }
+
+  const extractDataFromResponse = (response) => {
+    const audio = findAudio(response);
+    const definition = findDefinition(response);
+    const phonetic = response[0].phonetic || "Phonetic not found!";
+    return { audio, definition, phonetic };
+  };
+
+  const findAudio = (response) => {
+    for (const phonetic of response[0].phonetics) {
+      if (phonetic.audio) {
+        return phonetic.audio;
+      }
+    }
+    return null;
+  };
+
+  const findDefinition = (response) => {
+    for (const def of response[0].meanings[0].definitions) {
+      if (def.definition) {
+        return def.definition;
+      }
+    }
+    return "Definition not found";
+  };
+
+  function showSearchingMessage() {
+    const searchElement = document.createElement("h5");
+    searchElement.style.width = "300px";
+    searchElement.style.margin = 0;
+    searchElement.style.padding = 0;
+    searchElement.style.fontWeight = "500";
+    searchElement.id = "searching-span";
+    searchElement.innerHTML = `Searching...`;
+
+    popup.appendChild(searchElement);
+  }
+
+  function displayPopup(word, phonetic, audio, definition) {
+    console.log(audio, "Audio...");
+    popup.innerHTML = `<span id="close-popup"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></span>
+            <div id="popup-container">
+            <div id ="up-flex">
+            
+            <span id = "phonetic-para">${phonetic}</span>
+            ${
+              audio
+                ? `<audio id="myAudio">
+            <source src="${audio}" type="audio/mpeg">
+              Your browser does not support the audio element.
+            </audio>
+            <span id = "play-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-volume-2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></span>`
+                : ""
+            }
+            </div>
+            <span id = "word-span">${word}: </span>
+            <p id ="defination-para">${definition}</p>
+
+            <a id ="more-info" href = "https://www.google.com/search?dictcorpus=en-US&hl=en&forcedict=${word}&q=define%20${word}" target = "_Blank">More »</a>
+
+            </div>`;
+    const popupContainer = document.getElementById("popup-container");
+    const upperFlex = document.getElementById("up-flex");
+    const closeButton = document.getElementById("close-popup");
+    const paraElement = document.getElementById("phonetic-para");
+    const playSource = document.getElementById("myAudio");
+    const playButton = document.getElementById("play-btn");
+    const moreBtn = document.getElementById("more-info");
+    const definitionPara = document.getElementById("defination-para");
+    const wordSpan = document.getElementById("word-span");
+    stylingPopupContainer(
+      popupContainer,
+      upperFlex,
+      closeButton,
+      paraElement,
+      playButton,
+      moreBtn,
+      definitionPara,
+      wordSpan
+    );
+
+    listenToEvents(closeButton, playButton, playSource);
+  }
+
   const closePopup = () => {
     if (popup) {
       document.body.removeChild(popup);
       popup = null;
-      sText = null;
     }
   };
+
   const listenToEvents = (closeButton, playButton, playSource) => {
-    closeButton.addEventListener("click", closePopup);
-
-    playButton.addEventListener("click", () => {
-      playSource.play();
-    });
+    if (closeButton) {
+      closeButton.addEventListener("click", closePopup);
+    }
+    if (playButton) {
+      playButton.addEventListener("click", () => {
+        playButton.style.border = "none";
+        playSource.play();
+      });
+    }
   };
 
-  const errorPopup = (content) => {
-    popup.innerHTML = `<p>${content}</p>`;
-    popup.style.zIndex = "10000";
-    popup.style.position = "fixed";
-    popup.style.top = "0";
-    popup.style.right = "0";
-    popup.style.background = "red";
-    popup.style.color = "#fff";
-    popup.style.border = "1px solid #ccc";
-    popup.style.borderRadius = "5px";
-    popup.style.padding = "10px";
-    popup.style.boxShadow = "rgba(0, 0, 0, 0.34) 0px 5px 10px";
+  // const errorPopup = (content) => {
+  //   popup.innerHTML = `<p>${content}</p>`;
+  //   popup.style.zIndex = "10000";
 
-    setTimeout(() => {
-      closePopup();
-    }, 3000);
+  //   popup.style.background = "red";
+  //   popup.style.color = "#272829";
+  //   popup.style.border = "1px solid #ccc";
+  //   popup.style.borderRadius = "5px";
+  //   popup.style.padding = "10px";
+  //   popup.style.boxShadow = "rgba(0, 0, 0, 0.34) 0px 5px 10px";
+
+  //   setTimeout(() => {
+  //     closePopup();
+  //   }, 3000);
+  // };
+
+  const stylingPopup = () => {
+    if (popup) {
+      popup.style.zIndex = "10000";
+      // popup.style.position = "fixed";
+      // popup.style.top = "0";
+      // popup.style.right = "0";
+
+      popup.style.background = "#F1EFEF";
+      popup.style.color = "#191717";
+      // popup.style.border = "1px solid #ccc";
+      popup.style.borderTop = "none";
+      popup.style.borderRadius = "5px";
+      popup.style.padding = "10px";
+      popup.style.boxShadow = "rgba(0, 0, 0, 0.34) 0px 5px 10px";
+    }
   };
 
-  const stylingPopup = (
+  const stylingPopupContainer = (
     popupContainer,
     upperFlex,
     closeButton,
     paraElement,
-    playButton
+    playButton,
+    moreBtn,
+    definitionPara,
+    wordSpan
   ) => {
     //Popup Style
-    popup.style.position = "fixed";
-    popup.style.top = "0";
-    popup.style.right = "0";
-    popup.style.background = "#000";
-    popup.style.color = "#fff";
-    popup.style.border = "1px solid #ccc";
-    popup.style.borderRadius = "5px";
-    popup.style.padding = "10px";
-    popup.style.boxShadow = "rgba(0, 0, 0, 0.34) 0px 5px 10px";
-    popupContainer.style.position = "relative";
-    popupContainer.style.height = "auto";
-    popupContainer.style.width = "400px";
-    popupContainer.style.display = "flex";
-    popupContainer.style.flexDirection = "column";
+    if (popupContainer) {
+      popupContainer.style.position = "relative";
+      popupContainer.style.height = "auto";
+      popupContainer.style.width = "300px";
+      popupContainer.style.display = "flex";
+      popupContainer.style.flexDirection = "column";
+    }
 
     //upperFlex Style
-    upperFlex.style.display = "flex";
-    upperFlex.style.flexDirection = "row";
-    upperFlex.style.alignItems = "center";
-    upperFlex.style.gap = "10px";
+    if (upperFlex) {
+      upperFlex.style.display = "flex";
+      upperFlex.style.flexDirection = "row";
+      upperFlex.style.alignItems = "center";
+      upperFlex.style.gap = "10px";
 
-    upperFlex.style.paddingTop = "10px";
-    upperFlex.style.paddingBottom = "10px";
+      upperFlex.style.paddingTop = "10px";
+      upperFlex.style.paddingBottom = "10px";
+    }
+    //close button Style\
+    if (closeButton) {
+      closeButton.style.position = "absolute";
+      closeButton.style.textDecoration = "none";
+      closeButton.style.border = "none";
+      closeButton.style.background = "none";
+      closeButton.style.color = "#61677A";
+      closeButton.style.top = "-1px";
+      closeButton.style.right = "1px";
+      closeButton.style.padding = "0";
+      closeButton.style.margin = "0";
+      closeButton.style.borderRadius = "0";
+      closeButton.style.appearance = "none";
+      closeButton.style.textAlign = "center";
+      closeButton.style.zIndex = "100";
+      closeButton.style.cursor = "pointer";
 
-    //close button Style
-    closeButton.style.position = "absolute";
-    closeButton.style.textDecoration = "none";
-    closeButton.style.border = "none";
-    closeButton.style.background = "none";
-    closeButton.style.color = "#fff";
-    closeButton.style.top = "-2px";
-    closeButton.style.right = "1px";
-    closeButton.style.padding = "0";
-    closeButton.style.margin = "0";
-    closeButton.style.borderRadius = "0";
-    closeButton.style.appearance = "none";
-    closeButton.style.textAlign = "center";
-    closeButton.style.zIndex = "100";
+      closeButton.addEventListener("mouseover", () => {
+        closeButton.style.color = "#191717";
+      });
+      closeButton.addEventListener("mouseout", () => {
+        closeButton.style.color = "#61677A";
+      });
+    }
 
     //play-btn Style
-    playButton.style.textDecoration = "none";
-    playButton.style.border = "none";
-    playButton.style.background = "#000";
-    playButton.style.color = "#fff";
-    playButton.style.padding = "0";
-    playButton.style.margin = "0";
-    playButton.style.borderRadius = "0";
-    playButton.style.appearance = "none";
+    if (playButton) {
+      playButton.style.textDecoration = "none";
+      playButton.style.border = "none";
+      playButton.style.background = "none";
+      playButton.style.color = "#61677A";
+      playButton.style.padding = "0";
+      playButton.style.margin = "0";
+      playButton.style.borderRadius = "0";
+      playButton.style.appearance = "none";
+      playButton.style.textAlign = "center";
+      playButton.style.cursor = "pointer";
+
+      playButton.addEventListener("mouseover", () => {
+        playButton.style.color = "#191717";
+      });
+      playButton.addEventListener("mouseout", () => {
+        playButton.style.color = "#61677A";
+      });
+    }
 
     //paraElement style
-    paraElement.style.position = "relative";
+    if (paraElement) {
+      paraElement.style.position = "relative";
+      paraElement.style.fontWeight = "700";
+    }
+    //definition para style
+    if (definitionPara) {
+      definitionPara.style.fontWeight = "500";
+      definitionPara.style.fontSize = "15px";
+    }
+    //anchore tag style
+    if (moreBtn) {
+      moreBtn.style.color = "blue";
+      moreBtn.style.fontSize = "13px";
+      moreBtn.style.alignSelf = "flex-end";
+    }
+    //styling word heading
+    if (wordSpan) {
+      wordSpan.style.fontWeight = "700";
+      wordSpan.style.fontSize = "1rem";
+    }
   };
 
-  const getDefination = async (selection) => {
+  const getDefinition = async (selection) => {
     try {
       const response = await fetch(
         `https://api.dictionaryapi.dev/api/v2/entries/en/${selection}`
@@ -226,7 +358,9 @@
       const data = await response.json();
       return data;
     } catch (error) {
-      console.log(error);
+      console.log(error.message);
+      closePopup();
+      return;
     }
   };
 })();
