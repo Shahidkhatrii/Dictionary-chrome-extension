@@ -50,7 +50,6 @@
 
         if (isValidWord(selection)) {
           const selectionCoords = getSelectionCoords();
-          console.log(selectionCoords);
           positionPopup(selectionCoords);
           showSearchingMessage();
           const response = await getDefinition(selection);
@@ -68,7 +67,7 @@
 
     if (!word) {
       const errorMessage = response?.message || "Sorry!";
-      console.log(errorMessage);
+      console.error(errorMessage);
       closePopup();
     } else {
       const { audio, definition, phonetic } = extractDataFromResponse(response);
@@ -82,8 +81,7 @@
     const range = selection.getRangeAt(0);
 
     const rect = range.getBoundingClientRect();
-    console.log(rect, "rect");
-    console.log(rect.top, "top", rect.left, "left");
+
     return {
       top: rect.top + window.scrollY + rect.height + 10,
       left: rect.left + window.scrollX,
@@ -94,14 +92,10 @@
   }
 
   function positionPopup(coords) {
-    const { top, left, bottom } = coords;
+    const { top, left } = coords;
     popup.style.position = "absolute";
     popup.style.top = `${top}px`;
     popup.style.left = `${left > 100 ? left - 120 : left}px`;
-
-    document.addEventListener("scroll", () => {
-      console.log(top, "top\n", bottom, "bottom\n");
-    });
   }
 
   function addTail() {
@@ -155,7 +149,6 @@
   }
 
   function displayPopup(word, phonetic, audio, definition) {
-    console.log(audio, "Audio...");
     popup.innerHTML = `<span id="close-popup"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></span>
             <div id="popup-container">
             <div id ="up-flex">
@@ -218,22 +211,6 @@
       });
     }
   };
-
-  // const errorPopup = (content) => {
-  //   popup.innerHTML = `<p>${content}</p>`;
-  //   popup.style.zIndex = "10000";
-
-  //   popup.style.background = "red";
-  //   popup.style.color = "#272829";
-  //   popup.style.border = "1px solid #ccc";
-  //   popup.style.borderRadius = "5px";
-  //   popup.style.padding = "10px";
-  //   popup.style.boxShadow = "rgba(0, 0, 0, 0.34) 0px 5px 10px";
-
-  //   setTimeout(() => {
-  //     closePopup();
-  //   }, 3000);
-  // };
 
   const stylingPopup = () => {
     if (popup) {
@@ -358,7 +335,7 @@
       const data = await response.json();
       return data;
     } catch (error) {
-      console.log(error.message);
+      console.error(error.message);
       closePopup();
       return;
     }

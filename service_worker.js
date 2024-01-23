@@ -1,5 +1,5 @@
 chrome.runtime.onInstalled.addListener(function () {
-  console.log("Text Selection Extension installed");
+  console.info("Dictionary Extension installed!");
 });
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
