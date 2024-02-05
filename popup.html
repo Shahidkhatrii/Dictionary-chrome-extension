@@ -2,9 +2,15 @@
 <html>
 <head>
   <title>Dictionary Extension</title>
-  <script src="popup.js"></script>
+
 </head>
 <body>
-  <p>Right-click on a word and select "Define" to get its definition.</p>
+  <div>
+    <input type="text" id="search-input" placeholder="Enter a word...">
+    <button id="search-btn">Search</button>
+  </div>
+  <div id="response"></div>
+
+  <script src="popup.js"></script>
 </body>
 </html>
