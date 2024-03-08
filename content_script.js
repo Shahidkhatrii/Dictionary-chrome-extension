@@ -43,8 +43,8 @@
       if (action === "Define") {
         if (!popup) {
           popup = document.createElement("div");
+          popup.classList.add("popup");
           document.body.appendChild(popup);
-          stylingPopup();
           addTail();
         }
 
@@ -93,21 +93,13 @@
 
   function positionPopup(coords) {
     const { top, left } = coords;
-    popup.style.position = "absolute";
     popup.style.top = `${top}px`;
     popup.style.left = `${left > 100 ? left - 120 : left}px`;
   }
 
   function addTail() {
     var tail = document.createElement("div");
-    tail.style.content = "";
-    tail.style.border = "10px solid transparent";
-    tail.style.position = "absolute";
-    tail.style.borderBottomColor = "#F0F0F0";
-    tail.style.borderTop = "0";
-    tail.style.top = "-10px";
-    tail.style.left = "50%";
-    tail.style.marginLeft = "-10px";
+    tail.id = "popup-tail";
     popup.appendChild(tail);
   }
 
@@ -138,13 +130,8 @@
 
   function showSearchingMessage() {
     const searchElement = document.createElement("h5");
-    searchElement.style.width = "300px";
-    searchElement.style.margin = 0;
-    searchElement.style.padding = 0;
-    searchElement.style.fontWeight = "500";
     searchElement.id = "searching-span";
     searchElement.innerHTML = `Searching...`;
-
     popup.appendChild(searchElement);
   }
 
@@ -170,25 +157,10 @@
             <a id ="more-info" href = "https://www.google.com/search?dictcorpus=en-US&hl=en&forcedict=${word}&q=define%20${word}" target = "_Blank">More »</a>
 
             </div>`;
-    const popupContainer = document.getElementById("popup-container");
-    const upperFlex = document.getElementById("up-flex");
+
     const closeButton = document.getElementById("close-popup");
-    const paraElement = document.getElementById("phonetic-para");
     const playSource = document.getElementById("myAudio");
     const playButton = document.getElementById("play-btn");
-    const moreBtn = document.getElementById("more-info");
-    const definitionPara = document.getElementById("defination-para");
-    const wordSpan = document.getElementById("word-span");
-    stylingPopupContainer(
-      popupContainer,
-      upperFlex,
-      closeButton,
-      paraElement,
-      playButton,
-      moreBtn,
-      definitionPara,
-      wordSpan
-    );
 
     listenToEvents(closeButton, playButton, playSource);
   }
@@ -206,124 +178,8 @@
     }
     if (playButton) {
       playButton.addEventListener("click", () => {
-        playButton.style.border = "none";
         playSource.play();
       });
-    }
-  };
-
-  const stylingPopup = () => {
-    if (popup) {
-      popup.style.zIndex = "10000";
-      // popup.style.position = "fixed";
-      // popup.style.top = "0";
-      // popup.style.right = "0";
-
-      popup.style.background = "#F1EFEF";
-      popup.style.color = "#191717";
-      // popup.style.border = "1px solid #ccc";
-      popup.style.borderTop = "none";
-      popup.style.borderRadius = "5px";
-      popup.style.padding = "10px";
-      popup.style.boxShadow = "rgba(0, 0, 0, 0.34) 0px 5px 10px";
-    }
-  };
-
-  const stylingPopupContainer = (
-    popupContainer,
-    upperFlex,
-    closeButton,
-    paraElement,
-    playButton,
-    moreBtn,
-    definitionPara,
-    wordSpan
-  ) => {
-    //Popup Style
-    if (popupContainer) {
-      popupContainer.style.position = "relative";
-      popupContainer.style.height = "auto";
-      popupContainer.style.width = "300px";
-      popupContainer.style.display = "flex";
-      popupContainer.style.flexDirection = "column";
-    }
-
-    //upperFlex Style
-    if (upperFlex) {
-      upperFlex.style.display = "flex";
-      upperFlex.style.flexDirection = "row";
-      upperFlex.style.alignItems = "center";
-      upperFlex.style.gap = "10px";
-
-      upperFlex.style.paddingTop = "10px";
-      upperFlex.style.paddingBottom = "10px";
-    }
-    //close button Style\
-    if (closeButton) {
-      closeButton.style.position = "absolute";
-      closeButton.style.textDecoration = "none";
-      closeButton.style.border = "none";
-      closeButton.style.background = "none";
-      closeButton.style.color = "#61677A";
-      closeButton.style.top = "-1px";
-      closeButton.style.right = "1px";
-      closeButton.style.padding = "0";
-      closeButton.style.margin = "0";
-      closeButton.style.borderRadius = "0";
-      closeButton.style.appearance = "none";
-      closeButton.style.textAlign = "center";
-      closeButton.style.zIndex = "100";
-      closeButton.style.cursor = "pointer";
-
-      closeButton.addEventListener("mouseover", () => {
-        closeButton.style.color = "#191717";
-      });
-      closeButton.addEventListener("mouseout", () => {
-        closeButton.style.color = "#61677A";
-      });
-    }
-
-    //play-btn Style
-    if (playButton) {
-      playButton.style.textDecoration = "none";
-      playButton.style.border = "none";
-      playButton.style.background = "none";
-      playButton.style.color = "#61677A";
-      playButton.style.padding = "0";
-      playButton.style.margin = "0";
-      playButton.style.borderRadius = "0";
-      playButton.style.appearance = "none";
-      playButton.style.textAlign = "center";
-      playButton.style.cursor = "pointer";
-
-      playButton.addEventListener("mouseover", () => {
-        playButton.style.color = "#191717";
-      });
-      playButton.addEventListener("mouseout", () => {
-        playButton.style.color = "#61677A";
-      });
-    }
-
-    //paraElement style
-    if (paraElement) {
-      paraElement.style.position = "relative";
-      paraElement.style.fontWeight = "700";
-    }
-    //definition para style
-    if (definitionPara) {
-      definitionPara.style.fontWeight = "500";
-      definitionPara.style.fontSize = "15px";
-    }
-    //anchore tag style
-    if (moreBtn) {
-      moreBtn.style.color = "blue";
-      moreBtn.style.fontSize = "13px";
-      moreBtn.style.alignSelf = "flex-end";
-    }
-    //styling word heading
-    if (wordSpan) {
-      wordSpan.style.fontWeight = "700";
-      wordSpan.style.fontSize = "1rem";
     }
   };
 
