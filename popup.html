@@ -1,16 +1,19 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Dictionary Extension</title>
-  <link rel="stylesheet" href="popup.css">
-</head>
-<body>
-  <div class="search-container">
-    <input type="text" id="search-input" placeholder="Enter a word...">
-    <button id="search-btn">Search</button>
-  </div>
-  <div id="response"></div>
+  <head>
+    <title>Dictionary Extension</title>
+    <link rel="stylesheet" href="./style/popup.css" />
+  </head>
+  <body>
+    <div class="search-container">
+      <div class="input-container">
+        <img src="./icon/search-icon.svg" alt="Search" />
+        <input type="text" id="search-input" placeholder="Enter a word..." />
+      </div>
+      <button id="search-btn">Search</button>
+    </div>
+    <div id="response"></div>
 
-  <script src="popup.js"></script>
-</body>
+    <script src="./script/popup.js"></script>
+  </body>
 </html>

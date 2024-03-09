@@ -85,6 +85,7 @@
 }
 
 #word-span {
+    text-transform: capitalize;
     font-weight: 700;
     font-size: 1rem;
 }

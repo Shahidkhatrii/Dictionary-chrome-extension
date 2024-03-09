@@ -9,7 +9,7 @@ searchBtn.addEventListener("click", (e) => {
   if (isValidWord(word)) {
     getDefinition(word);
   } else {
-    responseContainer.innerHTML = `Please enter a valid word`;
+    responseContainer.innerHTML = `Please enter only single word`;
     setTimeout(() => {
       responseContainer.innerHTML = ``;
     }, 3000);
@@ -18,7 +18,8 @@ searchBtn.addEventListener("click", (e) => {
 });
 
 const getDefinition = async (word) => {
-  responseContainer.innerHTML = `Loading...`;
+  responseContainer.innerHTML = `<p id="loading">Loading...</p>`;
+
   try {
     const response = await fetch(
       `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`
@@ -42,13 +43,16 @@ const getDefinition = async (word) => {
                                     </div>
                                     <span id = "word-span">${word}: </span>
                                     <p id ="defination-para">${definition}</p>
+                                    <span id = "word-span">Example: </span>
                                     <p id ="defination-example">${usageExample}</p>
-                                    <a id ="more-info" href = "https://www.google.com/search?dictcorpus=en-US&hl=en&forcedict=${word}&q=define%20${word}" target = "_Blank">More »</a>
+                                    <a id ="more-info" href = "https://www.google.com/search?dictcorpus=en-US&hl=en&forcedict=${word}&q=define%20${word}" target = "_Blank">More <img src="./icon/right-icon.png" alt="icon"/></a>
                                     </div>`;
+
     return data;
   } catch (error) {
     console.error(error);
     responseContainer.innerHTML = ``;
+
     return;
   }
 };
