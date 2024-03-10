@@ -2,13 +2,18 @@
 
 ## Overview
 
-This chrome extension is a tool that provides instant word meanings when a user selects a word on any web page. It enhances the browsing experience by offering quick access to definitions without leaving the current page.
+This extension is a tool that provides instant word meanings when a user selects a word on any web page. It enhances the browsing experience by offering quick access to definitions without leaving the current page.
 
 ## Features
 
 - **Instant Word Meaning:** Select any word on a webpage to view its definition in a popup.
 - **Effortless Integration:** Seamless integration with Chrome for a hassle-free user experience.
 - **Lightweight:** A lightweight extension that doesn't compromise on performance.
+
+## Screenshots
+![Screenshot_20240227_113527](https://github.com/Shahidkhatrii/Dictionary-chrome-extension/assets/104732343/120e4f21-6cbf-470a-b59c-5c7d49d260d8)
+![Screenshot_20240310_114539](https://github.com/Shahidkhatrii/Dictionary-chrome-extension/assets/104732343/4836ad7d-5064-4628-afb6-0dc99659b191)
+
 
 ## Installation
 
